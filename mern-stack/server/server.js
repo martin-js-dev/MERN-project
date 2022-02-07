@@ -1,19 +1,38 @@
-const express = require("express");
+const express = require('express');
+const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
+const routes = require('./routes/api');
+require('dotenv').config();
+const connectDB = require('./config/db')
 const app = express();
-const cors = require("cors");
-require("dotenv").config({ path: "./config.env" });
+
 const port = process.env.PORT || 5000;
-app.use(cors());
-app.use(express.json());
-app.use(require("./routes/record"));
-// get driver connection
-const dbo = require("./db/conn");
- 
+
+connectDB()
+// Connect to the database
+mongoose
+  .connect(process.env.DB, { useNewUrlParser: true })
+  .then(() => console.log(`Database connected successfully`))
+  .catch((err) => console.log(err));
+
+// Since mongoose's Promise is deprecated, we override it with Node's Promise
+mongoose.Promise = global.Promise;
+
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  next();
+});
+
+app.use(bodyParser.json());
+
+app.use('/api', routes);
+
+app.use((err, req, res, next) => {
+  console.log(err);
+  next();
+});
+
 app.listen(port, () => {
-  // perform a database connection when server starts
-  dbo.connectToServer(function (err) {
-    if (err) console.error(err);
- 
-  });
-  console.log(`Server is running on port: ${port}`);
+  console.log(`Server running on port ${port}`);
 });
